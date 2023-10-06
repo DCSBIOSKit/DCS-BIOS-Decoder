@@ -105,9 +105,6 @@ class Decoder(srd.Decoder):
                     formatted_byte = '[{:02X}]'.format(byte)  # Show as Hex if not printable
 
                 self.put(ss, es, self.out_ann, [3, [formatted_byte]])
-            
-            #if self.byte_count - 1 == self.data_length:
-            #    self.state = 'RX_WAIT_CHECKSUM'
 
             self.byte_count += 1
 
