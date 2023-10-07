@@ -17,7 +17,7 @@ class Decoder(srd.Decoder):
         ('data', 'Data'),
         ('checksum', 'Checksum'),
         ('state', 'State'),
-        ('gap', 'Gap')
+        ('gap', 'Gap'),
     )
     annotation_rows = (
         ('fields', 'Fields', (0, 1, 2, 3, 4)),
@@ -31,7 +31,7 @@ class Decoder(srd.Decoder):
     def reset(self):
         self.new_message()
         self.state = 'UNINITIALIZED'
-        self.last_sample_end = 0  # Initialize this variable
+        self.last_sample_end = 0
 
     def new_message(self):
         self.state = 'SYNC'
@@ -55,19 +55,19 @@ class Decoder(srd.Decoder):
         gap = (ss - self.last_sample_end)
 
         # Check for a 500us+ pause to move to SYNC state
-        if gap > 50:
+        if gap >= 300:
             self.new_message()
 
-        if byte == 0xFC:
-            self.new_message()
-            return
+        #if byte == 0xFC:
+        #    self.new_message()
+        #    return
         
-        if gap > 50 and gap < 5000:
+        if gap >= 300 and gap < 5000:
             self.put(ss-gap, ss, self.out_ann, [5, ['SYNC']])
             self.put(ss-gap, ss, self.out_ann, [6, ['{}us'.format(gap)]])
 
-        if byte == 0xFC:
-            self.put(ss, es, self.out_ann, [5, ['SYNC']])
+        #if byte == 0xFC:
+        #    self.put(ss, es, self.out_ann, [5, ['SYNC']])
         
         # Update the last sample end time
         self.last_sample_end = es
@@ -118,4 +118,7 @@ class Decoder(srd.Decoder):
         if self.state == 'RX_WAIT_CHECKSUM':
             self.put(ss, es, self.out_ann, [4, ['{}'.format(byte)]])
             self.put(ss, es, self.out_ann, [5, ['RX_WAIT_CHECKSUM']])
+
+            if self.address == 0:
+                self.new_message()
             return

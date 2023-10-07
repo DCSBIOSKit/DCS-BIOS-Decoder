@@ -26,11 +26,11 @@ class Decoder(srd.Decoder):
         self.reset()
 
     def reset(self):
-        self.state = 'SYNC'  # Initial state: Wait for sync
-        self.sync_byte_count = 0
-        self.address = 0
-        self.count = 0
-        self.data = 0
+        self.protocol_state = 'SYNC'
+        self.protocol_sync_byte_count = 0
+        self.protocol_address = 0
+        self.protocol_count = 0
+        self.protocol_data = 0
 
     def start(self):
         self.out_ann = self.register(srd.OUTPUT_ANN)
@@ -41,54 +41,55 @@ class Decoder(srd.Decoder):
         if ptype != 'DATA':
             return
 
-        c = pdata[0]
+        byte = pdata[0]
 
-        if c == 0x55:
-            if self.sync_byte_count == 0:
+
+        if byte == 0x55:
+            if self.protocol_sync_byte_count == 0:
                 self.first_sync = ss
-            self.sync_byte_count += 1
+            self.protocol_sync_byte_count += 1
         else:
-            self.sync_byte_count = 0
+            self.protocol_sync_byte_count = 0
 
-        if self.sync_byte_count == 4:
-            self.state = 'ADDRESS_LOW'
-            self.count = 0
-            self.address = 0
-            self.data = 0
-            self.sync_byte_count = 0
+        if self.protocol_sync_byte_count == 4:
+            self.protocol_state = 'ADDRESS_LOW'
+            self.protocol_count = 0
+            self.protocol_address = 0
+            self.protocol_data = 0
+            self.protocol_sync_byte_count = 0
             self.put(self.first_sync, es, self.out_ann, [0, ['SYNC']])
             return
 
-        if self.state == 'ADDRESS_LOW':
-            self.address_start = ss
-            self.address = c
-            self.state = 'ADDRESS_HIGH'
+        if self.protocol_state == 'ADDRESS_LOW':
+            self.protocol_address_start = ss
+            self.protocol_address = byte
+            self.protocol_state = 'ADDRESS_HIGH'
 
-        elif self.state == 'ADDRESS_HIGH':
-            self.address = (c << 8) | self.address
-            if self.address != 0x5555:
-                self.state = 'COUNT_LOW'
+        elif self.protocol_state == 'ADDRESS_HIGH':
+            self.protocol_address = (byte << 8) | self.protocol_address
+            if self.protocol_address != 0x5555:
+                self.protocol_state = 'COUNT_LOW'
             else:
-                self.state = 'SYNC'
-            self.put(self.address_start, es, self.out_ann, [1, ['%04x' % (self.address)]])
+                self.protocol_state = 'SYNC'
+            self.put(self.protocol_address_start, es, self.out_ann, [1, ['%04x' % (self.protocol_address)]])
 
-        elif self.state == 'COUNT_LOW':
-            self.count_start = ss
-            self.count = c
-            self.state = 'COUNT_HIGH'
+        elif self.protocol_state == 'COUNT_LOW':
+            self.protocol_count_start = ss
+            self.protocol_count = byte
+            self.protocol_state = 'COUNT_HIGH'
 
-        elif self.state == 'COUNT_HIGH':
-            self.count = (c << 8) | self.count
-            self.state = 'DATA_LOW'
-            self.put(self.count_start, es, self.out_ann, [2, ['{}'.format(self.count)]])
+        elif self.protocol_state == 'COUNT_HIGH':
+            self.protocol_count = (byte << 8) | self.protocol_count
+            self.protocol_state = 'DATA_LOW'
+            self.put(self.protocol_count_start, es, self.out_ann, [2, ['{}'.format(self.protocol_count)]])
 
-        elif self.state == 'DATA_LOW':
-            self.data_start = ss
-            self.data = c
-            self.count -= 1
-            self.state = 'DATA_HIGH'
+        elif self.protocol_state == 'DATA_LOW':
+            self.protocol_data_start = ss
+            self.protocol_data = byte
+            self.protocol_count -= 1
+            self.protocol_state = 'DATA_HIGH'
             
-            char = chr(c)
+            char = chr(byte)
             if char.isprintable():
                 formatted_byte = char  # Show as ASCII if printable
             else:
@@ -96,17 +97,17 @@ class Decoder(srd.Decoder):
 
             self.put(ss, es, self.out_ann, [4, [formatted_byte]])
 
-        elif self.state == 'DATA_HIGH':
-            self.data = (c << 8) | self.data
-            self.count -= 1
-            self.address += 2
-            if self.count == 0:
-                self.state = 'ADDRESS_LOW'
+        elif self.protocol_state == 'DATA_HIGH':
+            self.protocol_data = (byte << 8) | self.protocol_data
+            self.protocol_count -= 1
+            self.protocol_address += 2
+            if self.protocol_count == 0:
+                self.protocol_state = 'ADDRESS_LOW'
             else:
-                self.state = 'DATA_LOW'
-            self.put(self.data_start, es, self.out_ann, [3, ['%04x' % (self.data)]])
+                self.protocol_state = 'DATA_LOW'
+            self.put(self.protocol_data_start, es, self.out_ann, [3, ['%04x' % (self.protocol_data)]])
 
-            char = chr(c)
+            char = chr(byte)
             if char.isprintable():
                 formatted_byte = char  # Show as ASCII if printable
             else:
