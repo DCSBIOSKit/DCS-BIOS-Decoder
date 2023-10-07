@@ -2,11 +2,12 @@ import sigrokdecode as srd
 
 class Decoder(srd.Decoder):
     api_version = 3
-    id = 'dcs_bios'
-    name = 'DCS-BIOS'
-    longname = 'DCS-BIOS Protocol'
-    desc = 'Decoder for the DCS-BIOS protocol over UART'
+    id = 'dcs_bios_rs485'
+    name = 'DCS-BIOS RS485'
+    longname = 'DCS-BIOS RS485'
+    desc = 'Decoder for DCS-BIOS RS485 encapsulation. Annotates RS485 only, please use the DCS-BIOS Protocol decoder to decode the protocol data.'
     license = 'gplv2+'
+    tags = ['DCS']
     inputs = ['uart']
     outputs = []
     annotations = (
@@ -15,13 +16,13 @@ class Decoder(srd.Decoder):
         ('datalength', 'Data Length'),
         ('data', 'Data'),
         ('checksum', 'Checksum'),
-        ('state', 'RS485 State'),
+        ('state', 'State'),
         ('gap', 'Gap')
     )
     annotation_rows = (
         ('fields', 'Fields', (0, 1, 2, 3, 4)),
-        ('state', 'RS485 State', (5,)),
-        ('idle', 'RS485 Idle', (6,)),
+        ('state', 'State', (5,)),
+        ('idle', 'Idle', (6,)),
     )
     
     def __init__(self):
