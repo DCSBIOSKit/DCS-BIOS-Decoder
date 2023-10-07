@@ -5,7 +5,7 @@ class Decoder(srd.Decoder):
     id = 'dcs_bios_rs485'
     name = 'DCS-BIOS RS485'
     longname = 'DCS-BIOS RS485'
-    desc = 'Decoder for DCS-BIOS RS485 encapsulation. Annotates RS485 only, please use the DCS-BIOS Protocol decoder to decode the protocol data.'
+    desc = 'DCS-BIOS RS485 Protocol Decoder.'
     license = 'gplv2+'
     tags = ['DCS']
     inputs = ['uart']
